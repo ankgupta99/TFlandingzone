@@ -1,0 +1,62 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the main branch
+  push:
+    branches: [ feature-terragrunt]
+    
+ 
+  pull_request:
+    branches: [ feature-terragrunt ]
+ 
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  TF_Setup:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+    # Steps represent a sequence of tasks that will be executed as part of the job
+  
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2 
+        # set a AWS credentials for terraform to work.
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{secrets.AWS_ACCESS_KEY}}
+          aws-secret-access-key: ${{secrets.AWS_SECRET_KEY}}
+          aws-region: eu-west-1    
+        # initializes terraform to download terraform provider, brings the github modules,etc..
+      - name: Terragrunt Install
+        id: tg-install
+        run: curl -L -o terragrunt https://github.com/gruntwork-io/terragrunt/releases/download/v0.35.3/terragrunt_linux_amd64 && chmod u+x terragrunt && mv terragrunt /usr/local/bin/terragrunt && terragrunt --version
+        continue-on-error: false        
+
+
+        # make sure the terraform provider (AWS) code is correct. using correct aws instance type for example.
+      - name: Terraform Tflint
+        id: tflint-install
+        run: curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+        continue-on-error: false
+
+
+      - name: Terragrunt Plan
+        id: plan
+        run: terragrunt plan --terragrunt-working-dir Account4
+        continue-on-error: false
+      - name: Show Plan
+        id: show
+        run: terragrunt show --terragrunt-working-dir Account4
+        continue-on-error: false
+      - name: Terragrunt apply
+        id: Apply
+        run: terragrunt apply -auto-approve --terragrunt-working-dir Account4
+        continue-on-error: false  
